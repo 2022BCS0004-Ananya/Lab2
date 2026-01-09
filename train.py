@@ -20,7 +20,7 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 # -----------------------------
 # Load dataset
 # -----------------------------
-data = pd.read_csv(DATA_PATH)
+data = pd.read_csv(DATA_PATH, sep=';')
 
 X = data.drop("quality", axis=1)
 y = data["quality"]
