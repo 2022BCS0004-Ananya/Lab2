@@ -42,7 +42,7 @@ X_test = scaler.transform(X_test)
 # -----------------------------
 # Model Training
 # -----------------------------
-model = LinearRegression(alpha=0.1)
+model = LinearRegression()
 model.fit(X_train, y_train)
 
 # -----------------------------
