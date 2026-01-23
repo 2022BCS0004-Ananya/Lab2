@@ -39,8 +39,7 @@ jobs:
         with:
           name: training-output
           path: |
-            Lab3/model/
-            Lab3/model/metrics.json
+            model/
 
   # -------------------------------
   # JOB 2: DEPLOYMENT (CD)
