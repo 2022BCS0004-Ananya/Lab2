@@ -40,6 +40,23 @@ jobs:
           name: training-output
           path: |
             model/
+      - name: Read current R2 score
+        id: read_r2
+        run: |
+          R2=$(python -c "import json; print(json.load(open('model/metrics.json'))['r2'])")
+          echo "CURRENT_R2=$R2" >> $GITHUB_ENV
+          echo "Current R2: $R2"
+      - name: Update BEST_R2 baseline if improved
+        if: ${{ env.CURRENT_R2 > vars.BEST_R2 }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          echo "New model beats baseline. Updating BEST_R2..."
+          gh api \
+            -X PATCH \
+            repos/${{ github.repository }}/actions/variables/BEST_R2 \
+            -f name=BEST_R2 \
+            -f value=${{ env.CURRENT_R2 }}
 
   # -------------------------------
   # JOB 2: DEPLOYMENT (CD)
