@@ -25,12 +25,14 @@ jobs:
 
       # Step 3: Install dependencies
       - name: Install dependencies
+        working-directory: Lab2
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
       # Step 4: Run training script
       - name: Train model
+        working-directory: Lab2
         run: python train.py
 
       # Step 5: Upload model and metrics as artifacts
@@ -39,7 +41,7 @@ jobs:
         with:
           name: training-output
           path: |
-            model/
+            Lab2/model/
 
   # -------------------------------
   # JOB 2: DEPLOYMENT (CD)
