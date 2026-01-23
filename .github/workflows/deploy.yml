@@ -31,7 +31,6 @@ jobs:
 
       # Step 4: Run training script
       - name: Train model
-        working-directory: Lab2
         run: python train.py
 
       # Step 5: Upload model and metrics as artifacts
