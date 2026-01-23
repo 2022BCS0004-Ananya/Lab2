@@ -1,0 +1,75 @@
+name: Automated Training and Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # -------------------------------
+  # JOB 1: TRAINING (CI)
+  # -------------------------------
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Run training script
+      - name: Train model
+        run: python train.py
+
+      # Step 5: Upload model and metrics as artifacts
+      - name: Upload training artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-output
+          path: |
+            model/
+            results/
+
+  # -------------------------------
+  # JOB 2: DEPLOYMENT (CD)
+  # -------------------------------
+  deploy:
+    needs: train
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Download artifacts from training job
+      - name: Download training artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: training-output
+
+      # Step 3: Login to Docker Hub using secrets
+      - name: Login to Docker Hub
+        run: echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      # Step 4: Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t ananyabcs4/lab4-wine-quality-2022bcs0004:latest .
+
+      # Step 5: Push Docker image to Docker Hub
+      - name: Push Docker image
+        run: |
+          docker push ananyabcs4/lab4-wine-quality-2022bcs0004:latest
