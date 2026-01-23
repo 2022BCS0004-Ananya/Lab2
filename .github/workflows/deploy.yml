@@ -39,7 +39,7 @@ jobs:
         with:
           name: training-output
           path: |
-            Lab2/model/
+            model/
 
   # -------------------------------
   # JOB 2: DEPLOYMENT (CD)
