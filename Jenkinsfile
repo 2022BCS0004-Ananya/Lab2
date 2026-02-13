@@ -40,7 +40,7 @@ pipeline {
         stage('Read Accuracy') {
             steps {
                 script {
-                    def metrics = readJSON file: 'app/artifacts/metrics.json'
+                    def metrics = readJSON file: 'output/results/metrics.json'
                     def acc = metrics.r2
 
                     env.CURRENT_ACCURACY = acc.toString()
@@ -105,7 +105,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'app/artifacts/**', fingerprint: true
+            archiveArtifacts artifacts: 'output/**', fingerprint: true
         }
     }
 }
