@@ -1,0 +1,104 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "ananyabcs4/lab6-wine-quality-2022bcs0004:latest"
+        CONTAINER_NAME = "priceless_kepler"
+        PORT = "8000"
+    }
+
+    stages {
+
+        stage('Pull Image') {
+            steps {
+                sh "docker pull ${IMAGE_NAME}"
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh """
+                docker run -d -p ${PORT}:8000 \
+                --name ${CONTAINER_NAME} \
+                ${IMAGE_NAME}
+                """
+            }
+        }
+
+        stage('Wait for Service Readiness') {
+            steps {
+                script {
+                    timeout(time: 60, unit: 'SECONDS') {
+                        waitUntil {
+                            def status = sh(
+                                script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:${PORT}/docs || true",
+                                returnStdout: true
+                            ).trim()
+
+                            return (status == "200")
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Send Valid Inference Request') {
+            steps {
+                script {
+                    def response = sh(
+                        script: "curl -s -X POST http://localhost:${PORT}/predict -H 'Content-Type: application/json' -d @tests/valid.json",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Valid Response: ${response}"
+
+                    def parsed = readJSON text: response
+
+                    if (!parsed.prediction) {
+                        error("Prediction field missing!")
+                    }
+
+                    if (!(parsed.prediction instanceof Number)) {
+                        error("Prediction is not numeric!")
+                    }
+                }
+            }
+        }
+
+        stage('Send Invalid Request') {
+            steps {
+                script {
+                    def status = sh(
+                        script: "curl -s -o response.txt -w '%{http_code}' -X POST http://localhost:${PORT}/predict -H 'Content-Type: application/json' -d @tests/invalid.json",
+                        returnStdout: true
+                    ).trim()
+
+                    def errorBody = readFile('response.txt')
+
+                    echo "Invalid Response Status: ${status}"
+                    echo "Invalid Response Body: ${errorBody}"
+
+                    if (status == "200") {
+                        error("Invalid input should not return 200!")
+                    }
+                }
+            }
+        }
+
+        stage('Stop Container') {
+            steps {
+                sh "docker stop ${CONTAINER_NAME} || true"
+                sh "docker rm ${CONTAINER_NAME} || true"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ All inference validations passed."
+        }
+        failure {
+            echo "❌ Inference validation failed."
+        }
+    }
+}
