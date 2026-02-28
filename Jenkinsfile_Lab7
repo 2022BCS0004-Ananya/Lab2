@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "ananyabcs4/lab6-wine-quality-2022bcs0004:latest"
-        CONTAINER_NAME = "2022bcss0004_jenkins"
+        CONTAINER_NAME = "wine_test_container"
         PORT = "8080"
     }
 
