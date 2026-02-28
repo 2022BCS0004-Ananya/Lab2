@@ -57,7 +57,7 @@ pipeline {
 
                 if [ "\$STATUS" != "200" ]; then exit 1; fi
 
-                echo "\$BODY" | grep prediction > /dev/null
+                echo "\$BODY" | grep predicted_quality > /dev/null
                 if [ \$? -ne 0 ]; then exit 1; fi
                 """
             }
