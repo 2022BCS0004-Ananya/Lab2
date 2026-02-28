@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME     = "ananyabcs4/lab6-wine-quality-2022bcs0004:latest"
         CONTAINER_NAME = "wine-api-test"
         HOST_ADDR      = "host.docker.internal"
-        PORT           = "8080"
+        PORT           = "8000"
     }
 
     stages {
