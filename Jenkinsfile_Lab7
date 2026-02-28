@@ -27,7 +27,6 @@ pipeline {
             steps {
                 sh """
                 docker run -d -p ${PORT}:8000\
-                --network host \
                 --name ${CONTAINER_NAME} \
                 ${IMAGE_NAME}
                 """
@@ -48,7 +47,7 @@ pipeline {
                 RESPONSE=\$(curl -s -w "\\n%{http_code}" \
                 -X POST http://${HOST_ADDR}:${PORT}/predict \
                 -H "Content-Type: application/json" \
-                -d @valid_input.json)
+                -d @tests/valid.json)
 
                 BODY=\$(echo "\$RESPONSE" | head -n 1)
                 STATUS=\$(echo "\$RESPONSE" | tail -n 1)
@@ -70,7 +69,7 @@ pipeline {
                 RESPONSE=\$(curl -s -w "\\n%{http_code}" \
                 -X POST http://${HOST_ADDR}:${PORT}/predict \
                 -H "Content-Type: application/json" \
-                -d @invalid_input.json)
+                -d @tests/invalid.json)
 
                 STATUS=\$(echo "\$RESPONSE" | tail -n 1)
 
