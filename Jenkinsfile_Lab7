@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "ananyabcs4/lab6-wine-quality-2022bcs0004:latest"
         CONTAINER_NAME = "wine_test_container"
-        PORT = "8000"
+        PORT = "8080"
     }
 
     stages {
@@ -18,7 +18,7 @@ pipeline {
         stage('Run Container') {
             steps {
                 sh """
-                docker run -d -p ${PORT}:8000 \
+                docker run -d -p ${PORT}:8080 \
                 --name ${CONTAINER_NAME} \
                 ${IMAGE_NAME}
                 """
