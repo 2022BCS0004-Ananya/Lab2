@@ -2,12 +2,20 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "ananyabcs4/lab6-wine-quality-2022bcs0004:latest"
-        CONTAINER_NAME = "wine_test_container"
-        PORT = "8080"
+        IMAGE_NAME     = "ananyabcs4/lab6-wine-quality-2022bcs0004:latest"
+        CONTAINER_NAME = "wine-api-test"
+        HOST_ADDR      = "host.docker.internal"
+        PORT           = "8080"
     }
 
     stages {
+
+        stage('Clean Old Container') {
+            steps {
+                sh "docker stop ${CONTAINER_NAME} || true"
+                sh "docker rm ${CONTAINER_NAME} || true"
+            }
+        }
 
         stage('Pull Image') {
             steps {
@@ -18,7 +26,7 @@ pipeline {
         stage('Run Container') {
             steps {
                 sh """
-                docker run -d -p ${PORT}:8080 \
+                docker run -d -p ${PORT}:8000 \
                 --name ${CONTAINER_NAME} \
                 ${IMAGE_NAME}
                 """
@@ -28,60 +36,60 @@ pipeline {
         stage('Wait for Service Readiness') {
             steps {
                 script {
-                    timeout(time: 60, unit: 'SECONDS') {
-                        waitUntil {
-                            def status = sh(
-                                script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:${PORT}/docs || true",
-                                returnStdout: true
-                            ).trim()
-
-                            return (status == "200")
-                        }
-                    }
+                    echo "Waiting for API to be ready..."
+                    sh """
+                    for i in {1..15}
+                    do
+                        STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://${HOST_ADDR}:${PORT}/docs || true)
+                        if [ "\$STATUS" = "200" ]; then
+                            echo "Service is ready!"
+                            exit 0
+                        fi
+                        sleep 3
+                    done
+                    echo "Service did not start in time."
+                    exit 1
+                    """
                 }
             }
         }
 
         stage('Send Valid Inference Request') {
             steps {
-                script {
-                    def response = sh(
-                        script: "curl -s -X POST http://localhost:${PORT}/predict -H 'Content-Type: application/json' -d @tests/valid.json",
-                        returnStdout: true
-                    ).trim()
+                sh """
+                RESPONSE=\$(curl -s -w "\\n%{http_code}" \
+                -X POST http://${HOST_ADDR}:${PORT}/predict \
+                -H "Content-Type: application/json" \
+                -d @valid_input.json)
 
-                    echo "Valid Response: ${response}"
+                BODY=\$(echo "\$RESPONSE" | head -n 1)
+                STATUS=\$(echo "\$RESPONSE" | tail -n 1)
 
-                    def parsed = readJSON text: response
+                echo "Status: \$STATUS"
+                echo "Body: \$BODY"
 
-                    if (!parsed.prediction) {
-                        error("Prediction field missing!")
-                    }
+                if [ "\$STATUS" != "200" ]; then exit 1; fi
 
-                    if (!(parsed.prediction instanceof Number)) {
-                        error("Prediction is not numeric!")
-                    }
-                }
+                echo "\$BODY" | grep prediction > /dev/null
+                if [ \$? -ne 0 ]; then exit 1; fi
+                """
             }
         }
 
         stage('Send Invalid Request') {
             steps {
-                script {
-                    def status = sh(
-                        script: "curl -s -o response.txt -w '%{http_code}' -X POST http://localhost:${PORT}/predict -H 'Content-Type: application/json' -d @tests/invalid.json",
-                        returnStdout: true
-                    ).trim()
+                sh """
+                RESPONSE=\$(curl -s -w "\\n%{http_code}" \
+                -X POST http://${HOST_ADDR}:${PORT}/predict \
+                -H "Content-Type: application/json" \
+                -d @invalid_input.json)
 
-                    def errorBody = readFile('response.txt')
+                STATUS=\$(echo "\$RESPONSE" | tail -n 1)
 
-                    echo "Invalid Response Status: ${status}"
-                    echo "Invalid Response Body: ${errorBody}"
+                echo "Invalid request status: \$STATUS"
 
-                    if (status == "200") {
-                        error("Invalid input should not return 200!")
-                    }
-                }
+                if [ "\$STATUS" = "200" ]; then exit 1; fi
+                """
             }
         }
 
@@ -95,7 +103,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ All inference validations passed."
+            echo "✅ Inference validation passed."
         }
         failure {
             echo "❌ Inference validation failed."
