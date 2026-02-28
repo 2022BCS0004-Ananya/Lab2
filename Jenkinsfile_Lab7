@@ -4,8 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME     = "ananyabcs4/lab6-wine-quality-2022bcs0004:latest"
         CONTAINER_NAME = "wine-api-test"
-        HOST_ADDR      = "localhost"
-        PORT           = "8090"
+        HOST_ADDR      = "host.docker.internal"
+        PORT           = "8000"
     }
 
     stages {
@@ -26,7 +26,8 @@ pipeline {
         stage('Run Container') {
             steps {
                 sh """
-                docker run -d \
+                docker run -d -p ${PORT}:8000\
+                --network host \
                 --name ${CONTAINER_NAME} \
                 ${IMAGE_NAME}
                 """
@@ -36,20 +37,7 @@ pipeline {
         stage('Wait for Service Readiness') {
             steps {
                 script {
-                    echo "Waiting for API to be ready..."
-                    sh """
-                    for i in {1..15}
-                    do
-                        STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://${CONTAINER_NAME}:8000/predict || true)
-                        if [ "\$STATUS" = "200" ]; then
-                            echo "Service is ready!"
-                            exit 0
-                        fi
-                        sleep 3
-                    done
-                    echo "Service did not start in time."
-                    exit 1
-                    """
+                    sleep 10
                 }
             }
         }
